@@ -1,7 +1,6 @@
 import os
 import shutil
 import tempfile
-import http.client
 
 import numpy
 
@@ -11,7 +10,7 @@ from mockserver.h5mockserver import H5MockServer, H5MockServerDataFile
 class TestGeneralApiCalls(object):
     
     @classmethod
-    def setupClass(cls):
+    def setup_class(cls):
         """
         Override.  Called by nosetests.
         - Create an hdf5 file to store the test data
@@ -21,10 +20,10 @@ class TestGeneralApiCalls(object):
         cls.test_filepath = os.path.join( cls._tmp_dir, "test_data.h5" )
         cls._generate_testdata_h5(cls.test_filepath)
         cls.server_proc, cls.shutdown_event = cls._start_mockserver( cls.test_filepath, same_process=True )
-        cls.client_connection = http.client.HTTPConnection( "localhost:8000" )
+        cls.server_url = "http://localhost:8000"
 
     @classmethod
-    def teardownClass(cls):
+    def teardown_class(cls):
         """
         Override.  Called by nosetests.
         """
@@ -74,7 +73,7 @@ class TestGeneralApiCalls(object):
         return H5MockServer.create_and_start( h5filepath, "localhost", 8000, same_process, disable_server_logging )
     
     def test_query_datasets_info(self):
-        info = general.get_repos_info( self.client_connection )
+        info = general.get_repos_info(self.server_url)
         items = sorted(info.items())
         first_item = items[0][1]
         assert first_item["DAG"]["Root"] == "abcde"
@@ -84,21 +83,13 @@ class TestGeneralApiCalls(object):
 
     def test_query_server_info(self):
         # Just run the query and see if we get a json schema error...
-        server_info = general.get_server_info( self.client_connection )
+        server_info = general.get_server_info(self.server_url)
         assert "Cores" in server_info
         assert "DVID datastore" in server_info
 
     def test_query_server_types(self):
         # Just run the query and see if we get a json schema error...
-        server_types = general.get_server_types( self.client_connection )
+        server_types = general.get_server_types(self.server_url)
         assert "grayscale8" in server_types
         assert "keyvalue" in server_types
         # ... etc...
-
-
-if __name__ == "__main__":
-    import sys
-    import nose
-    sys.argv.append("--nocapture")    # Don't steal stdout.  Show it on the console as usual.
-    sys.argv.append("--nologcapture") # Don't set the logging level to DEBUG.  Leave it alone.
-    nose.run(defaultTest=__file__)

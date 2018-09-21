@@ -19,7 +19,7 @@ class DvidConnection(object):
         self._connections = {}
         self.timeout = timeout
         self._lock = threading.Lock()
-    
+
     def __getattribute__(self, name):
         try:
             # If we have this attr, use it. 
