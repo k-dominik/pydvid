@@ -86,7 +86,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
             import traceback
             self.wfile.write("<!-- Server Exception Traceback:\n")
             traceback.print_exc(file=self.wfile)
-            self.wfile.write("\n-->")
+            self.wfile.write("\n-->".encode())
             self.wfile.flush()
             
             raise # Now crash...
@@ -162,7 +162,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/json")
         self.send_header("Content-length", str(len(json_text)))
         self.end_headers()
-        self.wfile.write( json_text )
+        self.wfile.write( json_text.encode() )
     
     def _do_get_server_types(self):
         server_types = {
@@ -179,7 +179,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/json")
         self.send_header("Content-length", str(len(json_text)))
         self.end_headers()
-        self.wfile.write( json_text )
+        self.wfile.write( json_text.encode() )
     
     def _do_get_repos_info(self):
         """
@@ -193,7 +193,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         self.send_header("Content-type", "text/json")
         self.send_header("Content-length", str(len(json_text)))
         self.end_headers()
-        self.wfile.write( json_text )
+        self.wfile.write( json_text.encode() )
 
 
     def _do_create_new_instance(self, uuid):
