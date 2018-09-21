@@ -1,4 +1,4 @@
-import httplib
+import http.client
 import threading
 
 class DvidConnection(object):
@@ -33,13 +33,13 @@ class DvidConnection(object):
             except:
                 with self._lock:
                     if thread_id not in self._connections:
-                        connection = httplib.HTTPConnection(self.hostname, timeout=self.timeout)
+                        connection = http.client.HTTPConnection(self.hostname, timeout=self.timeout)
                         self._connections[thread_id] = connection
                 return getattr(self._connections[thread_id], name)
 
     def close(self):
         # Close all underlying connections for all threads.
-        for conn in self._connections.values():
+        for conn in list(self._connections.values()):
             conn.close()
 
     # TODO: Implement special request() override that ensures the previous request (if any) has already been fully read, and raises an exception otherwise.

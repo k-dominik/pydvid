@@ -1,4 +1,4 @@
-import httplib
+import http.client
 import contextlib
 from pydvid.errors import DvidHttpError, UnexpectedResponseError
 import json
@@ -15,7 +15,7 @@ def create_new( connection, uuid, data_name ):
 
     with contextlib.closing( connection.getresponse() ) as response:
         #if response.status != httplib.NO_CONTENT:
-        if response.status != httplib.OK:
+        if response.status != http.client.OK:
             raise DvidHttpError( "labelgraph.create_new", response.status, response.reason, 
                                  response.read(), "POST", rest_cmd )
 
@@ -59,7 +59,7 @@ def _update_vertices( connection, uuid, data_name, vertex_list):
     connection.request( "POST", rest_cmd, body=json.dumps(graph_data), headers=headers )
     with contextlib.closing( connection.getresponse() ) as response:
         #if response.status != httplib.NO_CONTENT:
-        if response.status != httplib.OK:
+        if response.status != http.client.OK:
             raise DvidHttpError( 
                 "labelgraph vertex post", response.status, response.reason, response.read(),
                  "POST", rest_cmd, "json data", headers)
@@ -107,7 +107,7 @@ def _update_edges( connection, uuid, data_name, edge_list):
     connection.request( "POST", rest_cmd, body=json.dumps(graph_data), headers=headers )
     with contextlib.closing( connection.getresponse() ) as response:
         #if response.status != httplib.NO_CONTENT:
-        if response.status != httplib.OK:
+        if response.status != http.client.OK:
             raise DvidHttpError( 
                 "labelgraph edge post", response.status, response.reason, response.read(),
                  "POST", rest_cmd, "json data", headers)
@@ -118,6 +118,6 @@ def _update_edges( connection, uuid, data_name, edge_list):
 
 
 if __name__ == "__main__":
-    import httplib
-    conn = httplib.HTTPConnection("localhost:8000")
+    import http.client
+    conn = http.client.HTTPConnection("localhost:8000")
      

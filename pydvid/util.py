@@ -1,6 +1,6 @@
 import os
 import json
-import httplib
+import http.client
 import contextlib
 
 import jsonschema
@@ -17,7 +17,7 @@ def get_json_generic( connection, resource_path, schema=None ):
     """
     connection.request( "GET", resource_path )
     with contextlib.closing( connection.getresponse() ) as response:
-        if response.status != httplib.OK:
+        if response.status != http.client.OK:
             raise pydvid.errors.DvidHttpError( 
                 "requesting json for: {}".format( resource_path ),
                 response.status, response.reason, response.read(),

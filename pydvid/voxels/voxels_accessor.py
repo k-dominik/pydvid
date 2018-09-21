@@ -1,11 +1,11 @@
 import copy
 import time
-import httplib
+import http.client
 import functools
 import warnings
 
 import numpy
-import voxels
+from . import voxels
 
 from pydvid.errors import DvidHttpError
 from pydvid.voxels import VoxelsMetadata
@@ -124,7 +124,7 @@ class VoxelsAccessor(object):
                 # Fast path for the first attempt
                 return func(self, *args, **kwargs)
             except DvidHttpError as ex:
-                if ex.status_code != httplib.SERVICE_UNAVAILABLE:
+                if ex.status_code != http.client.SERVICE_UNAVAILABLE:
                     raise # not 503: this is a real problem
                 elif self._retry_timeout <= self._retry_interval:
                     raise VoxelsAccessor.ThrottleTimeoutException( 
@@ -149,7 +149,7 @@ class VoxelsAccessor(object):
                     try:
                         return func(self, *args, **kwargs)
                     except DvidHttpError as ex:
-                        if ex.status_code == httplib.SERVICE_UNAVAILABLE:
+                        if ex.status_code == http.client.SERVICE_UNAVAILABLE:
                             # 503 error from DVID indicates 'busy'
                             # We'll keep looping...
                             time_so_far = time.time() - start_time
@@ -256,8 +256,8 @@ class VoxelsAccessor(object):
         explicit_slicing = VoxelsAccessor._explicit_slicing(expanded_slicing, shape)
         request_slicing, result_slicing = self._determine_request_slicings(explicit_slicing, shape)
 
-        start = map( lambda s: s.start, request_slicing )
-        stop = map( lambda s: s.stop, request_slicing )
+        start = [s.start for s in request_slicing]
+        stop = [s.stop for s in request_slicing]
 
         retrieved_volume = self.get_ndarray(start, stop)
         return retrieved_volume[result_slicing]
@@ -301,8 +301,8 @@ class VoxelsAccessor(object):
         assert result_slicing[0] == slice( 0, shape[0] ), \
             "When pushing a subvolume to DVID, you must include all channels, not a subset of them."
 
-        start = map( lambda s: s.start, request_slicing )
-        stop = map( lambda s: s.stop, request_slicing )
+        start = [s.start for s in request_slicing]
+        stop = [s.stop for s in request_slicing]
 
         ## This assertion is omitted because users are allowed to expand the size of 
         ##   the remote volume implicitly by simply giving it more data

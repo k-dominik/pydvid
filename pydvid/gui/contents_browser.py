@@ -5,7 +5,7 @@ Requires PyQt4.  To see a demo of it in action, start up your dvid server run th
 $ python pydvid/gui/contents_browser.py localhost:8000
 """
 import socket
-import httplib
+import http.client
 import collections
 
 from PyQt4.QtGui import QPushButton, QDialog, QVBoxLayout, QGroupBox, QTreeWidget, \
@@ -185,13 +185,13 @@ class ContentsBrowser(QDialog):
         self._hostname = None
         try:
             # Query the server
-            connection = httplib.HTTPConnection( new_hostname )
+            connection = http.client.HTTPConnection( new_hostname )
             self._repos_info = pydvid.general.get_repos_info( connection )
             self._hostname = new_hostname
             self._connection = connection
         except socket.error as ex:
             error_msg = "Socket Error: {} (Error {})".format( ex.args[1], ex.args[0] )
-        except httplib.HTTPException as ex:
+        except http.client.HTTPException as ex:
             error_msg = "HTTP Error: {}".format( ex.args[0] )
 
         if error_msg:
@@ -221,7 +221,7 @@ class ContentsBrowser(QDialog):
         for dset_uuid, dset_info in sorted(self._repos_info.items()):
             dset_item = QTreeWidgetItem( self._data_treewidget, QStringList( dset_uuid ) )
             dset_item.setData( 0, Qt.UserRole, (dset_uuid, "") )
-            for data_name in dset_info["DataInstances"].keys():
+            for data_name in list(dset_info["DataInstances"].keys()):
                 data_item = QTreeWidgetItem( dset_item, QStringList( data_name ) )
                 data_item.setData( 0, Qt.UserRole, (dset_uuid, data_name) )
                 if self._mode == 'specify_new':
@@ -339,10 +339,10 @@ if __name__ == "__main__":
     if DEBUG and len(sys.argv) == 1:
         # default debug args
         parser.print_help()
-        print ""
-        print "*******************************************************"
-        print "No args provided.  Starting with special debug args...."
-        print "*******************************************************"
+        print("")
+        print("*******************************************************")
+        print("No args provided.  Starting with special debug args....")
+        print("*******************************************************")
         sys.argv.append("--mock-server-hdf5=/magnetic/mockdvid_gigacube.h5")
         #sys.argv.append("--mode=specify_new")
         sys.argv.append("localhost:8000")
@@ -364,9 +364,9 @@ if __name__ == "__main__":
 
     try:
         if browser.exec_() == QDialog.Accepted:
-            print "The dialog was accepted with result: ", browser.get_selection()
+            print("The dialog was accepted with result: ", browser.get_selection())
         else:
-            print "The dialog was rejected."
+            print("The dialog was rejected.")
     finally:
         if server_proc:
             shutdown_event.set()

@@ -1,1 +1,1 @@
-from labelgraph import *
+from .labelgraph import *

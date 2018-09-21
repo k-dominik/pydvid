@@ -1,1 +1,1 @@
-import contents_browser
+from . import contents_browser

@@ -1,5 +1,5 @@
 import json
-import httplib
+import http.client
 import contextlib
 
 import numpy
@@ -43,7 +43,7 @@ def create_new( connection, uuid, data_name, voxels_metadata ):
 
     with contextlib.closing( connection.getresponse() ) as response:
         #if response.status != httplib.NO_CONTENT:
-        if response.status != httplib.OK:
+        if response.status != http.client.OK:
             raise DvidHttpError( 
                 "voxels.new", response.status, response.reason, response.read(),
                  "POST", rest_query, message_json, headers)
@@ -90,7 +90,7 @@ def post_ndarray( connection, uuid, data_name, access_type, voxels_metadata, sta
     connection.request( "POST", rest_query, body=body_data_stream, headers=headers )
     with contextlib.closing( connection.getresponse() ) as response:
         #if response.status != httplib.NO_CONTENT:
-        if response.status != httplib.OK:
+        if response.status != http.client.OK:
             raise DvidHttpError( 
                 "subvolume post", response.status, response.reason, response.read(),
                  "POST", rest_query, "<binary data>", headers)
@@ -106,7 +106,7 @@ def get_subvolume_response( connection, uuid, data_name, access_type, start, sto
     rest_query = _format_subvolume_rest_uri( uuid, data_name, access_type, start, stop, format, query_args, throttle )
     connection.request( "GET", rest_query )
     response = connection.getresponse()
-    if response.status != httplib.OK:
+    if response.status != http.client.OK:
         raise DvidHttpError( 
             "subvolume query", response.status, response.reason, response.read(),
             "GET", rest_query, "" )
@@ -120,7 +120,7 @@ def _format_subvolume_rest_uri( uuid, data_name, access_type, start, stop, forma
     start = numpy.asarray(start)
     stop = numpy.asarray(stop)
     query_args = query_args or {}
-    query_args = { str(k) : str(v) for k,v in query_args.items() }
+    query_args = { str(k) : str(v) for k,v in list(query_args.items()) }
 
     # Drop channel before requesting from DVID
     start = start[1:]
@@ -131,7 +131,7 @@ def _format_subvolume_rest_uri( uuid, data_name, access_type, start, stop, forma
     roi_shape_str = "_".join( map(str, dvid_roi_shape) )
     start_str = "_".join( map(str, start) )
     
-    dims_string = "_".join( map(str, range(len(start)) ) )
+    dims_string = "_".join( map(str, list(range(len(start))) ) )
     rest_query = "/api/node/{uuid}/{data_name}/{access_type}/{dims_string}/{roi_shape_str}/{start_str}"\
                  "".format( uuid=uuid, 
                             data_name=data_name, 
@@ -153,7 +153,7 @@ def _format_subvolume_rest_uri( uuid, data_name, access_type, start, stop, forma
     if throttle:
         query_args["throttle"] = "on"
     if query_args:
-        rest_query += "?" + "&".join( map( "=".join, query_args.items() ) )
+        rest_query += "?" + "&".join( map( "=".join, list(query_args.items()) ) )
     return rest_query
 
 
@@ -166,7 +166,7 @@ def _validate_query_bounds( start, stop, volume_shape, allow_overflow_extents=Tr
     For reading, that would probably be an error.)
     """
     shape = volume_shape
-    start, stop, shape = map( numpy.array, (start, stop, shape) )
+    start, stop, shape = list(map( numpy.array, (start, stop, shape) ))
     assert start[0] == 0, "Subvolume get/post must include all channels.  Invalid roi: {}, {}".format( start, stop )
     assert stop[0] == shape[0], "Subvolume get/post must include all channels.  Invalid roi: {}, {}".format( start, stop )
     assert len(start) == len(stop) == len(shape), \

@@ -1,4 +1,4 @@
-import httplib
+import http.client
 import contextlib
 from pydvid.errors import DvidHttpError, UnexpectedResponseError
 from pydvid.util import get_json_generic
@@ -16,7 +16,7 @@ def create_new( connection, uuid, data_name ):
 
     with contextlib.closing( connection.getresponse() ) as response:
         #if response.status != httplib.NO_CONTENT:
-        if response.status != httplib.OK:
+        if response.status != http.client.OK:
             raise DvidHttpError( "keyvalue.create_new", response.status, response.reason, 
                                  response.read(), "POST", rest_cmd )
 
@@ -37,7 +37,7 @@ def put_value( connection, uuid, data_name, key, value ):
     connection.request( "POST", rest_cmd, body=value, headers=headers )
     with contextlib.closing( connection.getresponse() ) as response:
         #if response.status != httplib.NO_CONTENT:
-        if response.status != httplib.OK:
+        if response.status != http.client.OK:
             raise DvidHttpError( 
                 "keyvalue post", response.status, response.reason, response.read(),
                  "POST", rest_cmd, "<binary data>", headers)
@@ -60,15 +60,15 @@ def get_value_response( connection, uuid, data_name, key ):
     rest_query = "/api/node/{uuid}/{data_name}/{key}".format( **locals() )
     connection.request( "GET", rest_query )
     response = connection.getresponse()
-    if response.status != httplib.OK:
+    if response.status != http.client.OK:
         raise DvidHttpError( 
             "keyvalue request", response.status, response.reason, response.read(),
             "GET", rest_query, "" )
     return response
 
 if __name__ == "__main__":
-    import httplib
-    conn = httplib.HTTPConnection("localhost:8000")
+    import http.client
+    conn = http.client.HTTPConnection("localhost:8000")
     put_value( conn, '4a', 'greetings', 'english', 'hello' )
-    print "Got greeting: ", get_value( conn, '4a', 'greetings', 'english')
+    print("Got greeting: ", get_value( conn, '4a', 'greetings', 'english'))
     
