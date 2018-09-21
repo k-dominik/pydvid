@@ -1,7 +1,7 @@
 import os
 import shutil
 import tempfile
-import httplib
+import http.client
 
 import h5py
 
@@ -21,7 +21,7 @@ class TestKeyValue(object):
         cls.test_filepath = os.path.join( cls._tmp_dir, "test_data.h5" )
         cls._generate_testdata_h5(cls.test_filepath)
         cls.server_proc, cls.shutdown_event = cls._start_mockserver( cls.test_filepath, same_process=True )
-        cls.client_connection = httplib.HTTPConnection( "localhost:8000" )
+        cls.client_connection = http.client.HTTPConnection( "localhost:8000" )
 
     @classmethod
     def teardownClass(cls):

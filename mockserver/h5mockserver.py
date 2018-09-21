@@ -40,11 +40,11 @@ Obviously, the aim here is not to implement the full DVID API.
 """
 import re
 import json
-import httplib
+import http.client
 import collections
 import threading
 import multiprocessing
-from BaseHTTPServer import HTTPServer, BaseHTTPRequestHandler
+from http.server import HTTPServer, BaseHTTPRequestHandler
 
 import numpy
 import h5py
@@ -79,7 +79,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         except H5CutoutRequestHandler.RequestError as ex:
             self.send_error( ex.status_code, ex.message )
         except Exception as ex:
-            self.send_error( httplib.INTERNAL_SERVER_ERROR, 
+            self.send_error( http.client.INTERNAL_SERVER_ERROR, 
                              "Server Error: See response body for traceback.  Crashing now..." )
             
             # Write exception traceback to the response body as an html comment.
@@ -110,7 +110,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         
         # Surround each pattern with 'named group' regex syntax
         named_param_patterns = {}
-        for name, pattern in param_patterns.items():
+        for name, pattern in list(param_patterns.items()):
             named_param_patterns[name] = "(?P<" + name + ">" + pattern + ")" 
 
         # Supported REST command formats -> methods and handlers
@@ -130,14 +130,14 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
                                           ])
 
         # Find the matching rest command and execute the handler.
-        for rest_cmd_format, cmd_methods in rest_cmds.items():
+        for rest_cmd_format, cmd_methods in list(rest_cmds.items()):
             rst_cmd_pattern = rest_cmd_format.format( **named_param_patterns )
             match = re.match( rst_cmd_pattern, self.path )
             if match:
                 try:
                     handler = cmd_methods[method]
                 except KeyError:
-                    raise self.RequestError( httplib.METHOD_NOT_ALLOWED,
+                    raise self.RequestError( http.client.METHOD_NOT_ALLOWED,
                                              "Unsupported method for query: {} {}"
                                              "".format( method, self.path ) )
                 else:
@@ -146,7 +146,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
                     return
 
         # We couldn't find a command for the user's query.
-        raise self.RequestError( httplib.BAD_REQUEST, "Bad query syntax: {}".format( self.path ) )
+        raise self.RequestError( http.client.BAD_REQUEST, "Bad query syntax: {}".format( self.path ) )
 
     def _do_get_server_info(self):
         server_info = {
@@ -158,7 +158,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
           "Storage driver": "github.com/stuarteberg/pydvid/mockserver/h5mockserver.py"
         }
         json_text = json.dumps( server_info )
-        self.send_response(httplib.OK)
+        self.send_response(http.client.OK)
         self.send_header("Content-type", "text/json")
         self.send_header("Content-length", str(len(json_text)))
         self.end_headers()
@@ -175,7 +175,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
           "rgba8": "github.com/janelia-flyem/dvid/datatype/voxels/rgba8.go"
         }
         json_text = json.dumps( server_types )
-        self.send_response(httplib.OK)
+        self.send_response(http.client.OK)
         self.send_header("Content-type", "text/json")
         self.send_header("Content-length", str(len(json_text)))
         self.end_headers()
@@ -189,7 +189,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         # See the docstring above for details.
         info = self._get_repos_info_dict()
         json_text = json.dumps( info )
-        self.send_response(httplib.OK)
+        self.send_response(http.client.OK)
         self.send_header("Content-type", "text/json")
         self.send_header("Content-length", str(len(json_text)))
         self.end_headers()
@@ -202,7 +202,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         Create it.
         """
         if uuid not in self.server.h5_file["all_nodes"]:
-            raise self.RequestError( httplib.NOT_FOUND, "No such node with uuid {}".format( uuid ) )
+            raise self.RequestError( http.client.NOT_FOUND, "No such node with uuid {}".format( uuid ) )
 
         # Must read exact bytes.
         # Apparently rfile.read() just hangs.
@@ -212,12 +212,12 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         try:
             instance_params = json.loads( json_text )
         except ValueError:
-            raise self.RequestError( httplib.BAD_REQUEST, 
+            raise self.RequestError( http.client.BAD_REQUEST, 
                                      "Could not parse json in POST message body:" + json_text )
 
         if 'typename' not in instance_params or \
            'dataname' not in instance_params:
-            raise self.RequestError( httplib.BAD_REQUEST, 
+            raise self.RequestError( http.client.BAD_REQUEST, 
                                      "POST message body is missing required fields:" + json_text )
 
         typename = instance_params['typename']
@@ -225,18 +225,18 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         
         # Find the dataset that owns this node.
         volume_path = None
-        for dataset_name, dataset_group in self.server.h5_file['datasets'].items():
-            for node_uuid, node_group in dataset_group['nodes'].items():
+        for dataset_name, dataset_group in list(self.server.h5_file['datasets'].items()):
+            for node_uuid, node_group in list(dataset_group['nodes'].items()):
                 if node_uuid == uuid:
                     volume_path = '/datasets/{dataset_name}/volumes/{dataname}'.format( **locals() )
                     break
 
         if volume_path is None:
-            raise self.RequestError( httplib.NOT_FOUND,
+            raise self.RequestError( http.client.NOT_FOUND,
                                      "Cannot create.  Can't find node volumes dir in server hdf5 file." )
         
         if volume_path in self.server.h5_file:
-            raise self.RequestError( httplib.CONFLICT,
+            raise self.RequestError( http.client.CONFLICT,
                                      "Cannot create.  Data '{}' already exists.".format( volume_path ) )
 
         if typename == 'keyvalue':
@@ -250,7 +250,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
             self._create_volume( dataset_name, uuid, dataname, volume_path, typename, instance_params )
 
         #self.send_response(httplib.NO_CONTENT)
-        self.send_response(httplib.OK)
+        self.send_response(http.client.OK)
         self.send_header("Content-length", "0" )
         self.end_headers()
 
@@ -283,7 +283,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         try:        
             num_axes = len(instance_params["VoxelSize"].split(','))
         except KeyError:
-            raise self.RequestError( httplib.BAD_REQUEST,
+            raise self.RequestError( http.client.BAD_REQUEST,
                                      "Cannot create volume.  Config data in message body is missing 'VoxelSize' parameter: \n"
                                      + str(instance_params) )
         
@@ -308,7 +308,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         voxels_metadata = VoxelsMetadata.create_from_h5_dataset(dataset)
         json_text = json.dumps( voxels_metadata )
 
-        self.send_response(httplib.OK)
+        self.send_response(http.client.OK)
         self.send_header("Content-type", "text/json")
         self.send_header("Content-length", str(len(json_text)))
         self.end_headers()
@@ -323,7 +323,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         """
         if self.server.busy_count:
             self.server.busy_count -= 1
-            raise self.RequestError( httplib.SERVICE_UNAVAILABLE, "I'm busy. Try again later." )
+            raise self.RequestError( http.client.SERVICE_UNAVAILABLE, "I'm busy. Try again later." )
         
         dataset = self._get_h5_dataset(uuid, dataname)
         roi_start, roi_stop = self._determine_request_roi( dataset, dims, shape, offset )
@@ -347,7 +347,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         codec = VoxelsNddataCodec( dataset.dtype )
         buffer_len = codec.calculate_buffer_len( data.shape )
 
-        self.send_response(httplib.OK)
+        self.send_response(http.client.OK)
         self.send_header("Content-type", VoxelsNddataCodec.VOLUME_MIMETYPE)
         self.send_header("Content-length", str(buffer_len) )
         self.end_headers()
@@ -406,7 +406,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         self.server.h5_file.flush()
 
         #self.send_response(httplib.NO_CONTENT) # "No Content" (accepted)
-        self.send_response(httplib.OK)
+        self.send_response(http.client.OK)
         self.send_header("Content-length", 0 )
         self.end_headers()
     
@@ -417,28 +417,28 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         uuid/dataname, which must be of the keyvalue datatype.
         """
         if uuid not in self.server.h5_file["all_nodes"]:
-            raise self.RequestError( httplib.NOT_FOUND, "No such node with uuid {}".format( uuid ) )
+            raise self.RequestError( http.client.NOT_FOUND, "No such node with uuid {}".format( uuid ) )
         
         # Find the dataset that owns this node.
         volume_path = None
-        for dataset_name, dataset_group in self.server.h5_file['datasets'].items():
-            for node_uuid, node_group in dataset_group['nodes'].items():
+        for dataset_name, dataset_group in list(self.server.h5_file['datasets'].items()):
+            for node_uuid, node_group in list(dataset_group['nodes'].items()):
                 if node_uuid == uuid:
                     volume_path = '/datasets/{dataset_name}/volumes/{dataname}'.format( **locals() )
                     break
 
         if volume_path is None:
-            raise self.RequestError( httplib.NOT_FOUND,
+            raise self.RequestError( http.client.NOT_FOUND,
                                      "Can't access keyvalue store.  Can't find node volumes dir in server hdf5 file." )
 
         keyvalue_group = self.server.h5_file[volume_path]
 
         if key not in keyvalue_group:
-            raise self.RequestError( httplib.NOT_FOUND, "Data '{}' has no value for key '{}'".format( dataname, key ) )
+            raise self.RequestError( http.client.NOT_FOUND, "Data '{}' has no value for key '{}'".format( dataname, key ) )
 
         binary_data = keyvalue_group[key][()]
 
-        self.send_response(httplib.OK)
+        self.send_response(http.client.OK)
         self.send_header("Content-type", "application/octet")
         self.send_header("Content-length", str(len(binary_data)))
         self.end_headers()
@@ -450,18 +450,18 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         uuid/dataname, which must be of the keyvalue datatype.
         """
         if uuid not in self.server.h5_file["all_nodes"]:
-            raise self.RequestError( httplib.NOT_FOUND, "No such node with uuid {}".format( uuid ) )
+            raise self.RequestError( http.client.NOT_FOUND, "No such node with uuid {}".format( uuid ) )
         
         # Find the dataset that owns this node.
         volume_path = None
-        for dataset_name, dataset_group in self.server.h5_file['datasets'].items():
-            for node_uuid, node_group in dataset_group['nodes'].items():
+        for dataset_name, dataset_group in list(self.server.h5_file['datasets'].items()):
+            for node_uuid, node_group in list(dataset_group['nodes'].items()):
                 if node_uuid == uuid:
                     volume_path = '/datasets/{dataset_name}/volumes/{dataname}'.format( **locals() )
                     break
 
         if volume_path is None:
-            raise self.RequestError( httplib.NOT_FOUND,
+            raise self.RequestError( http.client.NOT_FOUND,
                                      "Can't access keyvalue store.  Can't find node volumes dir in server hdf5 file." )
 
         keyvalue_group = self.server.h5_file[volume_path]
@@ -477,7 +477,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         keyvalue_group.create_dataset(key, data=binary_data) 
 
         #self.send_response(httplib.NO_CONTENT) # "No Content" (accepted)
-        self.send_response(httplib.OK)
+        self.send_response(http.client.OK)
         self.send_header("Content-length", 0 )
         self.end_headers()
 
@@ -490,7 +490,7 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         if dataset_path in self.server.h5_file:
             return self.server.h5_file[dataset_path]
         else:
-            raise self.RequestError( httplib.NOT_FOUND,
+            raise self.RequestError( http.client.NOT_FOUND,
                                      "Couldn't find dataset: {} in file {}"
                                      "".format( dataset_path, self.server.h5_file.filename ) )
 
@@ -505,9 +505,9 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         dims_str, roi_shape_str, roi_start_str: strings from a REST request.
         """
         dataset_ndims = len(h5_dataset.shape)
-        expected_dims_str = "_".join( map(str, range( dataset_ndims-1 )) )
+        expected_dims_str = "_".join( map(str, list(range( dataset_ndims-1))) )
         if dims_str != expected_dims_str:
-            raise self.RequestError( httplib.BAD_REQUEST,
+            raise self.RequestError( http.client.BAD_REQUEST,
                                      "For now, queries must include all data axes.  "
                                      "Your query requested dims: {}".format( dims_str ) )
         
@@ -515,11 +515,11 @@ class H5CutoutRequestHandler(BaseHTTPRequestHandler):
         roi_shape = tuple( int(x) for x in roi_shape_str.split('_') )
 
         if len(roi_start) != dataset_ndims-1:
-            raise self.RequestError( httplib.BAD_REQUEST,
+            raise self.RequestError( http.client.BAD_REQUEST,
                                      "Invalid start coordinate: {} Expected {} dims, got {} "
                                      "".format( roi_start, dataset_ndims-1, len(roi_start) ) )
         if len(roi_shape) != dataset_ndims-1:
-            raise self.RequestError( httplib.BAD_REQUEST,
+            raise self.RequestError( http.client.BAD_REQUEST,
                                      "Invalid cutout shape: {} Expected {} dims, got {} "
                                      "".format( roi_shape, dataset_ndims-1, len(roi_shape) ) )
         
@@ -694,7 +694,7 @@ class H5MockServerDataFile(object):
         volumes_group.create_group( data_name )
         
         # Add a link to this volume in every node
-        for node in nodes_group.values():
+        for node in list(nodes_group.values()):
             node[data_name] = h5py.SoftLink( volumes_group.name + '/' + data_name )
 
         self._f.flush()
@@ -717,7 +717,7 @@ class H5MockServerDataFile(object):
         volume_dset.attrs['dvid_metadata'] = json.dumps( voxels_metadata )
         
         # Add a link to this volume in every node
-        for node in nodes_group.values():
+        for node in list(nodes_group.values()):
             node[volume_name] = h5py.SoftLink( volumes_group.name + '/' + volume_name )
 
         self._f.flush()
@@ -732,7 +732,7 @@ class H5MockServerDataFile(object):
         self._f['/all_nodes'][node_uuid] = h5py.SoftLink( nodes_group.name + '/' + node_uuid )
         
         # In this node, add a link to each volume of its dataset.
-        for volume_name in volumes_group.keys():
+        for volume_name in list(volumes_group.keys()):
             node[volume_name] = h5py.SoftLink( volumes_group.name + '/' + volume_name )
 
         self._f.flush()
@@ -778,4 +778,4 @@ if __name__ == "__main__":
         server = H5MockServer( filename, False, server_address, H5CutoutRequestHandler )
         server.serve_forever()
     finally:
-        print "SERVER EXITED."
+        print("SERVER EXITED.")

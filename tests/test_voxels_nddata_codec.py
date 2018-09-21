@@ -1,4 +1,4 @@
-import StringIO
+import io
 
 import numpy
 
@@ -10,7 +10,7 @@ class TestVoxelsNddataCodec(object):
         data = numpy.random.randint(0,255, (3, 100, 200)).astype(numpy.uint8)
         codec = VoxelsNddataCodec( data.dtype )
         
-        stream = StringIO.StringIO()
+        stream = io.StringIO()
         codec.encode_from_ndarray(stream, data)
         stream.seek(0)
         roundtrip_data = codec.decode_to_ndarray(stream, data.shape)
@@ -23,7 +23,7 @@ class TestVoxelsNddataCodec(object):
             data = numpy.random.randint(0,255, (3,100,200)).astype(dtype)
             codec = VoxelsNddataCodec( data.dtype )
              
-            stream = StringIO.StringIO()
+            stream = io.StringIO()
             codec.encode_from_ndarray(stream, data)
             stream.seek(0)
             roundtrip_data = codec.decode_to_ndarray(stream, data.shape)

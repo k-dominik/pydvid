@@ -1,7 +1,7 @@
 import os
 import shutil
 import tempfile
-import httplib
+import http.client
 
 import numpy
 import h5py
@@ -22,7 +22,7 @@ class TestVoxelsAccessor(object):
         cls.test_filepath = os.path.join( cls._tmp_dir, "test_data.h5" )
         cls._generate_testdata_h5(cls.test_filepath)
         cls.server_proc, cls.shutdown_event = cls._start_mockserver( cls.test_filepath, same_process=True )
-        cls.client_connection = httplib.HTTPConnection( "localhost:8000" )
+        cls.client_connection = http.client.HTTPConnection( "localhost:8000" )
 
     @classmethod
     def teardownClass(cls):
@@ -336,12 +336,12 @@ class TestVoxelsAccessor(object):
 
     def test_zz_quickstart_usage(self):
         import json
-        import httplib
+        import http.client
         import numpy
         from pydvid import voxels, general
           
         # Open a connection to DVID
-        connection = httplib.HTTPConnection( "localhost:8000", timeout=5.0 )
+        connection = http.client.HTTPConnection( "localhost:8000", timeout=5.0 )
          
         # Get detailed dataset info: /api/datasets/info
         dataset_details = general.get_repos_info( connection )
