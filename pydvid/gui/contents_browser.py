@@ -8,11 +8,13 @@ import socket
 import http.client
 import collections
 
-from PyQt4.QtGui import QPushButton, QDialog, QVBoxLayout, QGroupBox, QTreeWidget, \
-                        QTreeWidgetItem, QSizePolicy, QListWidget, QListWidgetItem, \
-                        QDialogButtonBox, QLineEdit, QLabel, QComboBox, QMessageBox, \
-                        QHBoxLayout
-from PyQt4.QtCore import Qt, QStringList, QSize, QEvent
+from PyQt5.Qtidget import (
+    QPushButton, QDialog, QVBoxLayout, QGroupBox, QTreeWidget,
+    QTreeWidgetItem, QSizePolicy, QListWidget, QListWidgetItem,
+    QDialogButtonBox, QLineEdit, QLabel, QComboBox, QMessageBox,
+    QHBoxLayout
+)
+from PyQt5.QtCore import Qt, QSize, QEvent
 
 import pydvid.general
 
@@ -219,10 +221,10 @@ class ContentsBrowser(QDialog):
             return
         
         for dset_uuid, dset_info in sorted(self._repos_info.items()):
-            dset_item = QTreeWidgetItem( self._data_treewidget, QStringList( dset_uuid ) )
+            dset_item = QTreeWidgetItem( self._data_treewidget( dset_uuid ) )
             dset_item.setData( 0, Qt.UserRole, (dset_uuid, "") )
             for data_name in list(dset_info["DataInstances"].keys()):
-                data_item = QTreeWidgetItem( dset_item, QStringList( data_name ) )
+                data_item = QTreeWidgetItem( dset_item( data_name ) )
                 data_item.setData( 0, Qt.UserRole, (dset_uuid, data_name) )
                 if self._mode == 'specify_new':
                     # If we're in specify_new mode, only the dataset parent items are selectable.
