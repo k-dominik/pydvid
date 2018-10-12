@@ -1,15 +1,16 @@
 import os
 import shutil
 import tempfile
-import http.client
 
 import h5py
 
 from pydvid import keyvalue
+from pydvid.connection import Connection
 from mockserver.h5mockserver import H5MockServer, H5MockServerDataFile
 
+
 class TestKeyValue(object):
-    
+
     @classmethod
     def setupClass(cls):
         """
@@ -21,7 +22,8 @@ class TestKeyValue(object):
         cls.test_filepath = os.path.join( cls._tmp_dir, "test_data.h5" )
         cls._generate_testdata_h5(cls.test_filepath)
         cls.server_proc, cls.shutdown_event = cls._start_mockserver( cls.test_filepath, same_process=True )
-        cls.client_connection = http.client.HTTPConnection( "localhost:8000" )
+        cls._server_address = "http://localhost:8000"
+        cls.client_connection = Connection(cls._server_address)
 
     @classmethod
     def teardownClass(cls):
@@ -53,9 +55,9 @@ class TestKeyValue(object):
     def _start_mockserver(cls, h5filepath, same_process=False, disable_server_logging=True):
         """
         Start the mock DVID server in a separate process.
-        
+
         h5filepath: The file to serve up.
-        same_process: If True, start the server in this process as a 
+        same_process: If True, start the server in this process as a
                       separate thread (useful for debugging).
                       Otherwise, start the server in its own process (default).
         disable_server_logging: If true, disable the normal HttpServer logging of every request.
@@ -79,7 +81,7 @@ class TestKeyValue(object):
 
         # (3) GET
         value = keyvalue.get_value( self.client_connection, self.data_uuid, self.data_name, 'key_abc' )
-        assert value == 'abcdefghijklmnopqrstuvwxyz'
+        assert value == 'abcdefghijklmnopqrstuvwxyz', f"got {value}"
 
 if __name__ == "__main__":
     import sys
